@@ -1,9 +1,12 @@
 import type { CompositionState, Quad } from '../types';
 export const DEFAULT_QUAD: Quad = [
-  { x: 138 / 700, y: 113 / 525 },
-  { x: 569 / 700, y: 113 / 525 },
-  { x: 569 / 700, y: 355 / 525 },
-  { x: 138 / 700, y: 355 / 525 },
+  // The inner display in public/assets/demo-mockup.png (1152 × 823).
+  // Keep the one-pixel perspective in the image so the default design stays
+  // inside the monitor bezel at native resolution.
+  { x: 274 / 1152, y: 250 / 823 },
+  { x: 882 / 1152, y: 252 / 823 },
+  { x: 882 / 1152, y: 592 / 823 },
+  { x: 274 / 1152, y: 591 / 823 },
 ];
 export const createDefaults = (): CompositionState => ({
   name: 'Studio Display · Untitled',

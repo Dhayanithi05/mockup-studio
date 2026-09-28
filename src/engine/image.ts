@@ -162,9 +162,7 @@ export function releaseImage(asset: ImageAsset | null) {
   }
 }
 export async function loadSample(name: 'mockup' | 'design') {
-  const response = await fetch(
-    `${import.meta.env.BASE_URL}assets/demo-${name}.${name === 'mockup' ? 'png' : 'jpg'}`,
-  );
+  const response = await fetch(`${import.meta.env.BASE_URL}assets/demo-${name}.png`);
   if (!response.ok)
     throw new Error('The sample image could not be loaded. Upload an image to begin.');
   return loadImage(
