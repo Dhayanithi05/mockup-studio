@@ -1,8 +1,6 @@
 import type { CompositionState, Quad } from '../types';
 export const DEFAULT_QUAD: Quad = [
   // The inner display in public/assets/demo-mockup.png (1152 × 823).
-  // Keep the one-pixel perspective in the image so the default design stays
-  // inside the monitor bezel at native resolution.
   { x: 274 / 1152, y: 250 / 823 },
   { x: 882 / 1152, y: 252 / 823 },
   { x: 882 / 1152, y: 592 / 823 },
