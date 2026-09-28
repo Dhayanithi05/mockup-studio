@@ -27,8 +27,8 @@ try {
       'demo-mockup.png',
     );
     assets.design = await loadImage(
-      await (await fetch('/assets/demo-design.jpg')).blob(),
-      'demo-design.jpg',
+      await (await fetch('/assets/demo-design.png')).blob(),
+      'demo-design.png',
     );
     window.videoTest = { exporter, createDefaults, assets };
   });

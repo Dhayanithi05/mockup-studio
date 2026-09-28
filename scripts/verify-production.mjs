@@ -9,7 +9,7 @@ try {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('http://127.0.0.1:5198');
-  await page.getByText('Portfolio — Figma export.jpg', { exact: true }).waitFor();
+  await page.getByText('Your Design Here.png', { exact: true }).waitFor();
   await page.evaluate(() => document.fonts.ready);
   assert.match(
     await page.evaluate(() => getComputedStyle(document.body).fontFamily),
