@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Screen detection verification</title>
+  </head>
+  <body>
+    <p>Local screen-detection verification fixture.</p>
+    <script type="module">
+      import {
+        detectScreenRegion,
+        disposeDetection,
+        selectDetectedScreens,
+      } from '../src/engine/detection.ts';
+      import phoneUrl from './fixtures/phone-mockup.svg?url';
+      import transparentUrl from './fixtures/transparent-phone.svg?url';
+      import dualUrl from './fixtures/dual-display.svg?url';
+      import tripleUrl from './fixtures/triple-display.svg?url';
+      window.runDetection = async (transparent = false) => {
+        const url =
+          transparent === 'dual'
+            ? dualUrl
+            : transparent === 'triple'
+              ? tripleUrl
+              : transparent
+                ? transparentUrl
+                : phoneUrl;
+        const blob = await (await fetch(url)).blob();
+        const image = new Image();
+        image.src = url;
+        await image.decode();
+        const stages = [];
+        const start = performance.now();
+        const candidates = await detectScreenRegion(
+          {
+            id: 'fixture',
+            name: 'fixture.svg',
+            blob,
+            bitmap: image,
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+            type: blob.type,
+            size: blob.size,
+            url,
+          },
+          (stage) => stages.push(stage),
+        );
+        return {
+          candidates,
+          selected: selectDetectedScreens(candidates),
+          stages,
+          milliseconds: performance.now() - start,
+        };
+      };
+      window.disposeDetection = disposeDetection;
+    </script>
+  </body>
+</html>

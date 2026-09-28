@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="12000" viewBox="0 0 1440 12000">
+  <defs><pattern id="grid" width="120" height="120" patternUnits="userSpaceOnUse"><path d="M120 0H0V120" fill="none" stroke="#ddd" stroke-width="1"/></pattern></defs>
+  <rect width="1440" height="12000" fill="#f5f2eb"/>
+  <rect width="1440" height="12000" fill="url(#grid)"/>
+  <rect width="1440" height="115" fill="#141517"/>
+  <text x="80" y="75" font-family="Arial,sans-serif" font-size="44" font-weight="bold" fill="white">SOURCE QUALITY / 1440 × 12000</text>
+  <text x="90" y="430" font-family="Arial,sans-serif" font-size="118" font-weight="bold" fill="#20252d">Designed for detail.</text>
+  <text x="96" y="550" font-family="Arial,sans-serif" font-size="39" fill="#62686f">Original pixels. Independent full-resolution exports.</text>
+  <rect x="90" y="710" width="1260" height="690" rx="45" fill="#99bca6"/>
+  <circle cx="720" cy="1055" r="240" fill="#18372d"/>
+  <text x="570" y="1090" font-family="Arial,sans-serif" font-size="96" fill="white">01</text>
+  <g font-family="Arial,sans-serif" font-size="100" font-weight="bold" fill="#20252d">
+    <text x="90" y="1940">02 / Scroll into focus.</text><text x="90" y="3540">03 / Every small detail.</text><text x="90" y="5140">04 / Keep moving.</text><text x="90" y="6740">05 / Original source.</text><text x="90" y="8340">06 / A new perspective.</text><text x="90" y="9940">07 / Full resolution.</text><text x="90" y="11540">08 / End of the page.</text>
+  </g>
+  <g fill="#d9b08d"><rect x="90" y="2120" width="610" height="1050" rx="35"/><rect x="740" y="2120" width="610" height="1050" rx="35"/></g>
+  <rect x="90" y="3720" width="1260" height="1050" rx="35" fill="#b8a5c7"/>
+  <rect x="90" y="5320" width="1260" height="1050" rx="35" fill="#a3b7ca"/>
+  <rect x="90" y="6920" width="1260" height="1050" rx="35" fill="#dacb94"/>
+  <rect x="90" y="8520" width="1260" height="1050" rx="35" fill="#aac0b3"/>
+  <rect x="90" y="10120" width="1260" height="1050" rx="35" fill="#c9a9a7"/>
+  <text x="90" y="11900" font-family="Arial,sans-serif" font-size="40" fill="#606975">Bottom marker — source y = 11900 px</text>
+</svg>

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+test-results/
+.detection-check/
+*.tsbuildinfo
+tests/renderer-perspective.png
