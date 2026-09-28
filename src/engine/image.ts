@@ -167,7 +167,7 @@ export async function loadSample(name: 'mockup' | 'design') {
     throw new Error('The sample image could not be loaded. Upload an image to begin.');
   return loadImage(
     await response.blob(),
-    name === 'mockup' ? 'Studio Display.png' : 'Portfolio — Figma export.jpg',
+    name === 'mockup' ? 'Studio Display.png' : 'Your Design Here.png',
   );
 }
 export const fileSize = (bytes: number) =>
