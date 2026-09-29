@@ -1,6 +1,6 @@
 import type { DetectionCandidate, Point, Quad } from '../types';
 
-export type DetectionMethod = 'edge' | 'color' | 'plane' | 'alpha';
+export type DetectionMethod = 'edge' | 'color' | 'saturation' | 'plane' | 'alpha';
 const clamp = (value: number, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 

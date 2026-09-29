@@ -42,9 +42,11 @@ interface CVRuntime {
   contourArea(contour: CVMat): number;
   threshold(source: CVMat, target: CVMat, threshold: number, maximum: number, type: number): void;
   split(source: CVMat, channels: CVMatVector): void;
+  convexHull(source: CVMat, hull: CVMat, clockwise: boolean, returnPoints: boolean): void;
   morphologyEx(source: CVMat, target: CVMat, operation: number, kernel: CVMat): void;
   getStructuringElement(shape: number, size: unknown): CVMat;
   COLOR_RGBA2GRAY: number;
+  COLOR_RGBA2HSV: number;
   RETR_LIST: number;
   CHAIN_APPROX_SIMPLE: number;
   THRESH_BINARY: number;
@@ -110,6 +112,7 @@ function analyze(
     const edges = keep(new cv.Mat());
     const binary = keep(new cv.Mat());
     const kernel = keep(cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3)));
+    const colourKernel = keep(cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(9, 9)));
     cv.cvtColor(rgba, gray, cv.COLOR_RGBA2GRAY);
     cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
 
@@ -123,43 +126,60 @@ function analyze(
         for (let index = 0; index < count; index++) {
           const contour = contours.get(index);
           let polygon: CVMat | undefined;
+          let hull: CVMat | undefined;
           try {
             const area = Math.abs(cv.contourArea(contour));
             if (area < width * height * 0.005 || area > width * height * 0.94) continue;
-            const perimeter = cv.arcLength(contour, true);
             polygon = new cv.Mat();
-            for (const accuracy of [0.008, 0.015, 0.025, 0.04]) {
-              cv.approxPolyDP(contour, polygon, perimeter * accuracy, true);
-              if (polygon.rows !== 4) continue;
-              const points = Array.from({ length: 4 }, (_, p) => ({
-                x: polygon!.data32S[p * 2],
-                y: polygon!.data32S[p * 2 + 1],
-              }));
-              const ordered = orderDetectionQuad(points);
-              if (!ordered) continue;
-              const contourPoints = Array.from({ length: contour.rows }, (_, p) => ({
-                x: contour.data32S[p * 2],
-                y: contour.data32S[p * 2 + 1],
-              }));
-              const quad = refineDetectionQuad(ordered, contourPoints);
-              const confidence = scoreDetectionQuad(quad, width, height, pixels, method);
-              if (confidence === null || confidence < 0.42) continue;
-              const normalized = quad.map((p) => ({ x: p.x / width, y: p.y / height })) as Quad;
-              candidates.push({
-                quad: normalized,
-                confidence,
-                label:
-                  method === 'alpha'
-                    ? 'Transparent screen opening'
-                    : method === 'plane'
-                      ? 'Display surface'
-                      : method === 'color'
-                        ? 'Display color boundary'
-                      : 'Display boundary',
-              });
-              break;
+            const shapes: CVMat[] = [contour];
+            let accepted = false;
+            // A hand, glare, or object can split one edge of an otherwise clear display plane.
+            // The hull reconnects that plane without changing the original contour used for normal cases.
+            if (method === 'saturation' || method === 'plane') {
+              hull = new cv.Mat();
+              cv.convexHull(contour, hull, true, true);
+              if (hull.rows >= 4) shapes.push(hull);
+            }
+            for (const shape of shapes) {
+              const perimeter = cv.arcLength(shape, true);
+              for (const accuracy of [0.008, 0.015, 0.025, 0.04]) {
+                cv.approxPolyDP(shape, polygon, perimeter * accuracy, true);
+                if (polygon.rows !== 4) continue;
+                const points = Array.from({ length: 4 }, (_, p) => ({
+                  x: polygon!.data32S[p * 2],
+                  y: polygon!.data32S[p * 2 + 1],
+                }));
+                const ordered = orderDetectionQuad(points);
+                if (!ordered) continue;
+                const contourPoints = Array.from({ length: shape.rows }, (_, p) => ({
+                  x: shape.data32S[p * 2],
+                  y: shape.data32S[p * 2 + 1],
+                }));
+                const quad = refineDetectionQuad(ordered, contourPoints);
+                const confidence = scoreDetectionQuad(quad, width, height, pixels, method);
+                if (confidence === null || confidence < 0.42) continue;
+                const normalized = quad.map((p) => ({ x: p.x / width, y: p.y / height })) as Quad;
+                candidates.push({
+                  quad: normalized,
+                  confidence,
+                  label:
+                    method === 'alpha'
+                      ? 'Transparent screen opening'
+                      : method === 'plane'
+                        ? 'Display surface'
+                        : method === 'saturation'
+                          ? 'Display colour plane'
+                          : method === 'color'
+                            ? 'Display color boundary'
+                            : 'Display boundary',
+                });
+                accepted = true;
+                break;
+              }
+              if (accepted) break;
             }
           } finally {
+            hull?.delete();
             polygon?.delete();
             contour.delete();
           }
@@ -199,6 +219,24 @@ function analyze(
       }
     } finally {
       channels.delete();
+    }
+
+    stage('Recovering saturated display planes…');
+    const hsv = keep(new cv.Mat());
+    const hsvChannels = new cv.MatVector();
+    try {
+      cv.cvtColor(rgba, hsv, cv.COLOR_RGBA2HSV);
+      cv.split(hsv, hsvChannels);
+      const saturation = hsvChannels.get(1);
+      try {
+        cv.threshold(saturation, binary, 60, 255, cv.THRESH_BINARY);
+        cv.morphologyEx(binary, binary, cv.MORPH_CLOSE, colourKernel);
+        inspectContours(binary, 'saturation');
+      } finally {
+        saturation.delete();
+      }
+    } finally {
+      hsvChannels.delete();
     }
 
     stage('Comparing display surfaces and transparent openings…');
