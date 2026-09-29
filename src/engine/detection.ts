@@ -57,7 +57,11 @@ export async function detectScreenRegion(
 ): Promise<DetectionCandidate[]> {
   try {
     onStage?.('Preparing a local analysis copy…');
-    const scale = Math.min(1, 1200 / Math.max(asset.width, asset.height));
+    // Preserve enough pixels to identify a small companion display in a wide scene,
+    // while keeping analysis bounded on large uploads.
+    const maxDimensionScale = 1600 / Math.max(asset.width, asset.height);
+    const maxPixelsScale = Math.sqrt(2_400_000 / (asset.width * asset.height));
+    const scale = Math.min(1, maxDimensionScale, maxPixelsScale);
     const width = Math.max(1, Math.round(asset.width * scale));
     const height = Math.max(1, Math.round(asset.height * scale));
     const canvas = document.createElement('canvas');

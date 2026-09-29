@@ -125,10 +125,10 @@ function analyze(
           let polygon: CVMat | undefined;
           try {
             const area = Math.abs(cv.contourArea(contour));
-            if (area < width * height * 0.012 || area > width * height * 0.94) continue;
+            if (area < width * height * 0.005 || area > width * height * 0.94) continue;
             const perimeter = cv.arcLength(contour, true);
             polygon = new cv.Mat();
-            for (const accuracy of [0.012, 0.022, 0.038]) {
+            for (const accuracy of [0.008, 0.015, 0.025, 0.04]) {
               cv.approxPolyDP(contour, polygon, perimeter * accuracy, true);
               if (polygon.rows !== 4) continue;
               const points = Array.from({ length: 4 }, (_, p) => ({
@@ -153,6 +153,8 @@ function analyze(
                     ? 'Transparent screen opening'
                     : method === 'plane'
                       ? 'Display surface'
+                      : method === 'color'
+                        ? 'Display color boundary'
                       : 'Display boundary',
               });
               break;
@@ -178,12 +180,38 @@ function analyze(
       inspectContours(edges, 'edge');
     }
 
+    // Grayscale edges can disappear when a bright, saturated display meets a similarly
+    // bright scene. Inspecting RGB channels separately preserves those colour-only borders.
+    stage('Scanning colour display boundaries…');
+    const channels = new cv.MatVector();
+    try {
+      cv.split(rgba, channels);
+      for (const channelIndex of [0, 1, 2]) {
+        const channel = channels.get(channelIndex);
+        try {
+          cv.GaussianBlur(channel, blurred, new cv.Size(5, 5), 0);
+          cv.Canny(blurred, edges, 30, 105);
+          cv.morphologyEx(edges, edges, cv.MORPH_CLOSE, kernel);
+          inspectContours(edges, 'color');
+        } finally {
+          channel.delete();
+        }
+      }
+    } finally {
+      channels.delete();
+    }
+
     stage('Comparing display surfaces and transparent openings…');
+    // Restore the grayscale analysis surface after the channel-specific passes.
+    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
     for (const [threshold, operation] of [
-      [50, cv.THRESH_BINARY_INV],
-      [210, cv.THRESH_BINARY],
+      [35, cv.THRESH_BINARY_INV],
+      [65, cv.THRESH_BINARY_INV],
+      [195, cv.THRESH_BINARY],
+      [225, cv.THRESH_BINARY],
     ]) {
       cv.threshold(blurred, binary, threshold, 255, operation);
+      cv.morphologyEx(binary, binary, cv.MORPH_CLOSE, kernel);
       inspectContours(binary, 'plane');
     }
     let hasTransparency = false;

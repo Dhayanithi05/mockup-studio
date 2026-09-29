@@ -1,6 +1,6 @@
 import type { DetectionCandidate, Point, Quad } from '../types';
 
-export type DetectionMethod = 'edge' | 'plane' | 'alpha';
+export type DetectionMethod = 'edge' | 'color' | 'plane' | 'alpha';
 const clamp = (value: number, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -145,7 +145,9 @@ export function scoreDetectionQuad(
   )
     return null;
   const area = detectionQuadArea(quad) / (width * height);
-  if (area < 0.014 || area > 0.9) return null;
+  // Keep smaller secondary screens (phones, tablets, and picture-in-picture displays)
+  // available for review, while rejecting tiny cards and decorative details below.
+  if (area < 0.006 || area > 0.9) return null;
   const xs = quad.map((p) => p.x),
     ys = quad.map((p) => p.y);
   const border = Math.max(2, Math.min(width, height) * 0.009);
@@ -158,7 +160,7 @@ export function scoreDetectionQuad(
   // Exclude the photograph's outer frame and transparent exterior contours.
   if (touchedBorders >= 3 || (touchedBorders >= 2 && area > 0.55)) return null;
   const sides = quad.map((p, i) => distance(p, quad[(i + 1) % 4]));
-  if (Math.min(...sides) < Math.min(width, height) * 0.045) return null;
+  if (Math.min(...sides) < Math.min(width, height) * 0.032) return null;
   const ratio = (sides[0] + sides[2]) / (sides[1] + sides[3]);
   if (ratio < 0.2 || ratio > 5) return null;
   const oppositeSimilarity =
