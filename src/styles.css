@@ -2653,6 +2653,25 @@ a {
 .timeline-bottom {
   margin-top: 13px;
 }
+.timeline-toggle {
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.timeline-toggle svg {
+  transition: transform 180ms ease;
+}
+.timeline.is-collapsed {
+  height: 52px;
+}
+.timeline.is-collapsed .timeline-header {
+  height: 52px;
+}
+.timeline.is-collapsed .timeline-track,
+.timeline.is-collapsed .timeline-bottom {
+  display: none;
+}
+.timeline.is-collapsed .timeline-toggle svg {
+  transform: rotate(180deg);
+}
 .statusbar {
   background: #171a14;
   border-color: var(--line);
@@ -2788,6 +2807,10 @@ a {
   .timeline {
     height: 154px;
     padding: 0 12px;
+  }
+  .timeline.is-collapsed,
+  .timeline.is-collapsed .timeline-header {
+    height: 47px;
   }
   .timeline-title strong {
     display: none;

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   Check,
@@ -55,6 +55,7 @@ export default function App() {
   const file = useRef<HTMLInputElement>(null);
   const uploadTarget = useRef<keyof Assets>('design');
   const abort = useRef<AbortController | null>(null);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   useEffect(() => {
     let disposed = false;
     void Promise.all([loadSample('mockup'), loadSample('design')])
@@ -568,7 +569,7 @@ export default function App() {
             </div>
           </div>
           <Stage />
-          <div className="timeline">
+          <div className={`timeline${timelineCollapsed ? ' is-collapsed' : ''}`}>
             <div className="timeline-header">
               <div className="timeline-title">
                 <Clapperboard size={15} />
@@ -614,6 +615,15 @@ export default function App() {
                 onClick={() => s.ui({ tab: 'Motion' })}
               >
                 <MoreHorizontal size={18} />
+              </button>
+              <button
+                className="icon-button timeline-toggle"
+                aria-label={timelineCollapsed ? 'Expand motion timeline' : 'Collapse motion timeline'}
+                aria-expanded={!timelineCollapsed}
+                title={timelineCollapsed ? 'Expand timeline' : 'Collapse timeline'}
+                onClick={() => setTimelineCollapsed((collapsed) => !collapsed)}
+              >
+                <ChevronDown size={18} />
               </button>
             </div>
             <div className="timeline-track">
