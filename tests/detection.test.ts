@@ -88,6 +88,24 @@ describe('screen candidate geometry', () => {
     expect(strong).toBeLessThanOrEqual(0.98);
   });
 
+  it('recognizes a continuous colour-only display boundary', () => {
+    const pixels = new Uint8ClampedArray(200 * 150 * 4);
+    for (let index = 0; index < pixels.length; index += 4) {
+      pixels[index] = 0;
+      pixels[index + 1] = 75;
+      pixels[index + 2] = 255;
+      pixels[index + 3] = 255;
+    }
+    for (let y = 21; y < 110; y++)
+      for (let x = 21; x < 180; x++) {
+        const offset = (y * 200 + x) * 4;
+        pixels[offset] = 255;
+        pixels[offset + 1] = 0;
+        pixels[offset + 2] = 0;
+      }
+    expect(scoreDetectionQuad(quad, 200, 150, pixels, 'color')).toBeGreaterThan(0.8);
+  });
+
   it('rejects outer image boundaries, tiny cards, and narrow table-leg shapes', () => {
     const imageBoundary: Quad = [
       { x: 1, y: 1 },
@@ -116,6 +134,16 @@ describe('screen candidate geometry', () => {
     expect(scoreDetectionQuad(quad, 200, 150, pixels, 'alpha')).toBeNull();
     for (let y = 21; y < 110; y++) for (let x = 21; x < 180; x++) pixels[(y * 200 + x) * 4 + 3] = 0;
     expect(scoreDetectionQuad(quad, 200, 150, pixels, 'alpha')).toBeGreaterThan(0.9);
+  });
+
+  it('prioritizes a verified transparent opening over an overlapping opaque boundary', () => {
+    const normalized = quad.map((p) => ({ x: p.x / 200, y: p.y / 150 })) as Quad;
+    expect(
+      distinctDetectionCandidates([
+        { quad: normalized, confidence: 0.96, label: 'Display boundary' },
+        { quad: normalized, confidence: 0.82, label: 'Transparent screen opening' },
+      ]).map((candidate) => candidate.label),
+    ).toEqual(['Transparent screen opening']);
   });
 
   it('keeps perspective displays and ranks/deduplicates normalized suggestions', () => {

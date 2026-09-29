@@ -678,7 +678,7 @@ export default function PropertyPanel(actions: PanelActions) {
                             s.ui({ editScreen: true });
                           }}
                         >
-                          <span>Region {i + 1}</span>
+                          <span>{p.label}</span>
                           <span>{Math.round(p.confidence * 100)}% match</span>
                         </button>
                         <button

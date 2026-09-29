@@ -117,6 +117,12 @@ function lumaAt(
   return pixels[offset] * 0.2126 + pixels[offset + 1] * 0.7152 + pixels[offset + 2] * 0.0722;
 }
 
+function pixelOffset(width: number, height: number, x: number, y: number): number {
+  return (
+    (Math.round(clamp(y, 0, height - 1)) * width + Math.round(clamp(x, 0, width - 1))) * 4
+  );
+}
+
 /** Deterministic computer-vision heuristic; confidence is a ranking score, not an AI probability. */
 export function scoreDetectionQuad(
   quad: Quad,
@@ -186,6 +192,8 @@ export function scoreDetectionQuad(
     -Math.min(...standardRatios.map((r) => Math.abs(Math.log(ratio / r)))) * 2,
   );
   let edgeSum = 0;
+  let colourEdgeSum = 0;
+  let continuousEdges = 0;
   let enclosedAlphaEdges = 0;
   const offset = Math.max(2, Math.min(width, height) * 0.004);
   for (let side = 0; side < 4; side++) {
@@ -198,26 +206,31 @@ export function scoreDetectionQuad(
       const length = Math.hypot(center.x - x, center.y - y);
       const dx = ((center.x - x) / length) * offset,
         dy = ((center.y - y) / length) * offset;
-      edgeSum += Math.abs(
-        lumaAt(pixels, width, height, x + dx, y + dy) -
-          lumaAt(pixels, width, height, x - dx, y - dy),
+      const inside = pixelOffset(width, height, x + dx, y + dy);
+      const outside = pixelOffset(width, height, x - dx, y - dy);
+      const lumaDifference = Math.abs(
+        pixels[inside] * 0.2126 +
+          pixels[inside + 1] * 0.7152 +
+          pixels[inside + 2] * 0.0722 -
+          (pixels[outside] * 0.2126 +
+            pixels[outside + 1] * 0.7152 +
+            pixels[outside + 2] * 0.0722),
       );
+      const colourDifference = Math.hypot(
+        pixels[inside] - pixels[outside],
+        pixels[inside + 1] - pixels[outside + 1],
+        pixels[inside + 2] - pixels[outside + 2],
+      ) / Math.sqrt(3);
+      edgeSum += lumaDifference;
+      colourEdgeSum += colourDifference;
+      if (Math.max(lumaDifference, colourDifference) >= 20) continuousEdges++;
       if (method === 'alpha') {
-        const inside =
-          (Math.round(clamp(y + dy, 0, height - 1)) * width +
-            Math.round(clamp(x + dx, 0, width - 1))) *
-            4 +
-          3;
-        const outside =
-          (Math.round(clamp(y - dy, 0, height - 1)) * width +
-            Math.round(clamp(x - dx, 0, width - 1))) *
-            4 +
-          3;
-        if (pixels[inside] < 32 && pixels[outside] > 180) enclosedAlphaEdges++;
+        if (pixels[inside + 3] < 32 && pixels[outside + 3] > 180) enclosedAlphaEdges++;
       }
     }
   }
-  const edgeStrength = clamp(edgeSum / 48 / 48);
+  const edgeStrength = clamp(Math.max(edgeSum / 48 / 48, colourEdgeSum / 48 / 68));
+  const edgeContinuity = continuousEdges / 48;
   const samples: number[] = [];
   let transparentSamples = 0;
   for (let iy = 1; iy <= 8; iy++) {
@@ -245,7 +258,8 @@ export function scoreDetectionQuad(
     rectangularity * 0.17 +
     centrality * 0.07 +
     aspect * 0.09 +
-    edgeStrength * 0.24 +
+    edgeStrength * 0.2 +
+    edgeContinuity * 0.04 +
     uniformity * 0.09 +
     surface * 0.06;
   if (method === 'alpha') {
@@ -263,7 +277,13 @@ export function distinctDetectionCandidates(
   limit = 12,
 ): DetectionCandidate[] {
   const result: DetectionCandidate[] = [];
-  for (const candidate of [...candidates].sort((a, b) => b.confidence - a.confidence)) {
+  for (const candidate of [...candidates].sort((a, b) => {
+    // A closed transparent opening is direct evidence of a screen cut-out. Keep it ahead of
+    // its opaque outline even when a high-contrast bezel receives a similar score.
+    const alphaPriority =
+      Number(b.label.startsWith('Transparent')) - Number(a.label.startsWith('Transparent'));
+    return alphaPriority || b.confidence - a.confidence;
+  })) {
     const duplicate = result.some((other) => {
       const meanDistance =
         candidate.quad.reduce((sum, point, index) => sum + distance(point, other.quad[index]), 0) /
